@@ -21,7 +21,7 @@ from streamlit_plotly_events import plotly_events
 st.set_page_config(page_title="Carbon Dashboard", page_icon=":bar_chart:", layout="wide")
 st.title("Carbon Project Analysis Dashboard")
 
-EXCEL_PATH = r"data/Voluntary-Registry-Offsets-Database--v2025-04.xlsx"
+EXCEL_PATH = r"data/Voluntary-Registry-Offsets-Database--v2025-06.xlsx"
 SHEET_NAME = "PROJECTS"
 SKIP_ROWS = 3
 
@@ -1049,3 +1049,4 @@ else:
         if len(figs) > 3:
 
             st.plotly_chart(figs[3], use_container_width=True)
+
