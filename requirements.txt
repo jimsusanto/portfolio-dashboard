@@ -1,7 +1,6 @@
-﻿pandas
-numpy
-matplotlib
-os
-textwrap
-plotly
-pycountry
+streamlit==1.49.1
+pandas==2.2.2
+numpy==1.26.4
+matplotlib==3.9.2
+plotly==5.22.0
+pycountry==24.6.1
