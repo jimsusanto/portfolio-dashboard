@@ -4,3 +4,4 @@ numpy==1.26.4
 matplotlib==3.9.2
 plotly==5.22.0
 pycountry==24.6.1
+streamlit-plotly-events>=0.0.6
