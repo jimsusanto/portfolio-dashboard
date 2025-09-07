@@ -142,56 +142,113 @@ df_projects = load_projects(EXCEL_PATH, SHEET_NAME, SKIP_ROWS)
 # ============== SIDEBAR FILTERS ==============
 st.sidebar.header("Please Filter Here:")
 
-# 🔽 Add the master switch here
-select_all_master = st.sidebar.checkbox("Select all for every filter", value=False, key="all_filters")
+def uniq_sorted(s):
+    return sorted(pd.Series(s).dropna().unique().tolist())
 
-def multiselect_with_all_master(label, options, key):
-    select_all = st.sidebar.checkbox(f"Select all {label}", value=select_all_master, key=f"{key}_all")
-    selected = st.sidebar.multiselect(
-        label,
-        options,
-        default=(options if select_all else []),
-        key=key,
-        disabled=select_all
-    )
-    return options if select_all else selected
+# --- init session state once
+for k in ["region_sel","country_sel","registry_sel","scope_sel","type_sel","redrem_sel","master_all"]:
+    st.session_state.setdefault(k, [] if k.endswith("_sel") else False)
 
-# 🔽 Add the unique switch here
-def sorted_unique(series):
-    return sorted(pd.Series(series).dropna().unique().tolist())
-
-region_opts   = sorted_unique(df_projects["Region"]) if "Region" in df_projects else []
-country_opts  = sorted_unique(df_projects["Country"]) if "Country" in df_projects else []
-reg_opts      = sorted_unique(df_projects["Voluntary_Registry"]) if "Voluntary_Registry" in df_projects else []
-scope_opts    = sorted_unique(df_projects["Scope"]) if "Scope" in df_projects else []
-type_opts     = sorted_unique(df_projects["Type"]) if "Type" in df_projects else []
-redrem_opts   = sorted_unique(df_projects["Reduction_Removal"]) if "Reduction_Removal" in df_projects else []
-
-# Defaults: no selection = treat as "All"
-region_sel  = multiselect_with_all("Region",  region_opts, key="region")
-country_sel = multiselect_with_all("Country", country_opts, key="country")
-reg_sel     = multiselect_with_all("Registry", reg_opts, key="registry")
-scope_sel   = multiselect_with_all("Scope",   scope_opts, key="scope")
-type_sel    = multiselect_with_all("Type",    type_opts, key="type")
-redrem_sel  = multiselect_with_all("Reduction_Removal", redrem_opts, key="redrem")
-
+# --- Reset inline (safe place to call st.rerun)
 if st.sidebar.button("Reset all filters"):
+    for k in list(st.session_state.keys()):
+        if k.endswith("_sel") or k == "master_all":
+            st.session_state.pop(k, None)
     st.rerun()
 
-# Build mask only when a selection is made for each filter
+# ========= 1) compute parent options FIRST (unfiltered) =========
+region_opts   = uniq_sorted(df_projects["Region"])               if "Region" in df_projects else []
+scope_opts    = uniq_sorted(df_projects["Scope"])                if "Scope" in df_projects else []
+registry_opts = uniq_sorted(df_projects["Voluntary_Registry"])   if "Voluntary_Registry" in df_projects else []
+redrem_all    = uniq_sorted(df_projects["Reduction_Removal"])    if "Reduction_Removal" in df_projects else []
+
+# ========= 2) master-all checkbox (callback sets state, no rerun) =========
+def _apply_master_all():
+    """Write full option lists into the *_sel keys BEFORE widgets are rendered."""
+    if st.session_state.master_all:
+        # Parent selections (global lists)
+        st.session_state.region_sel   = region_opts[:]
+        st.session_state.scope_sel    = scope_opts[:]
+        st.session_state.registry_sel = registry_opts[:]
+        st.session_state.redrem_sel   = redrem_all[:]   # provisional; may reduce after child opts computed
+
+st.sidebar.checkbox("Select all for every filter", key="master_all", on_change=_apply_master_all)
+
+# ========= 3) render PARENT widgets =========
+
+def _clear_type_on_scope_change():
+    # When Scope changes, clear Type so it can repopulate with valid defaults
+    st.session_state["type_sel"] = []
+
+st.sidebar.multiselect("Region", options=region_opts, key="region_sel",
+                       disabled=st.session_state.master_all)
+st.sidebar.multiselect(
+    "Scope",
+    options=scope_opts,
+    key="scope_sel",
+    disabled=st.session_state.master_all,
+    on_change=_clear_type_on_scope_change,   # << add this
+)
+
+# ========= 4) compute CHILD options based on parents =========
+df_children = df_projects.copy()
+if st.session_state.region_sel:
+    df_children = df_children[df_children["Region"].isin(st.session_state.region_sel)]
+if st.session_state.scope_sel:
+    df_children = df_children[df_children["Scope"].isin(st.session_state.scope_sel)]
+
+country_opts = uniq_sorted(df_children["Country"]) if "Country" in df_children else []
+type_opts    = uniq_sorted(df_children["Type"])    if "Type" in df_children else []
+# If user hasn't chosen any Type, default to "all valid Types under current Scope(s)"
+type_default = st.session_state.get("type_sel") or type_opts[:]
+
+
+# Clamp any existing child selections to allowed values
+st.session_state.country_sel = [v for v in st.session_state.country_sel if v in country_opts]
+st.session_state.type_sel    = [v for v in st.session_state.type_sel    if v in type_opts]
+
+# If master_all is on, also fill child selections NOW (still before child widgets are rendered)
+if st.session_state.master_all:
+    st.session_state.country_sel = country_opts[:]
+    st.session_state.type_sel    = type_opts[:]
+
+# ========= 5) render CHILD & other widgets =========
+st.sidebar.multiselect("Country", options=country_opts, key="country_sel",
+                       disabled=st.session_state.master_all)
+st.sidebar.multiselect(
+    "Type (filtered by Scope)",
+    options=type_opts,
+    default=type_default,           # << make "all under scope" the default
+    key="type_sel",
+    disabled=st.session_state.master_all
+)
+st.sidebar.multiselect("Registry", options=registry_opts, key="registry_sel",
+                       disabled=st.session_state.master_all)
+st.sidebar.multiselect("Reduction / Removal", options=redrem_all, key="redrem_sel",
+                       disabled=st.session_state.master_all)
+
+# ========= 6) build the mask =========
 mask = pd.Series(True, index=df_projects.index)
-if region_sel:
-    mask &= df_projects["Region"].isin(region_sel)
-if country_sel:
-    mask &= df_projects["Country"].isin(country_sel)
-if reg_sel:
-    mask &= df_projects["Voluntary_Registry"].isin(reg_sel)
-if scope_sel:
-    mask &= df_projects["Scope"].isin(scope_sel)
-if type_sel:
-    mask &= df_projects["Type"].isin(type_sel)
-if redrem_sel:
-    mask &= df_projects["Reduction_Removal"].isin(redrem_sel)
+if st.session_state.region_sel:
+    mask &= df_projects["Region"].isin(st.session_state.region_sel)
+if st.session_state.country_sel:
+    mask &= df_projects["Country"].isin(st.session_state.country_sel)
+if st.session_state.registry_sel:
+    mask &= df_projects["Voluntary_Registry"].isin(st.session_state.registry_sel)
+if st.session_state.scope_sel:
+    mask &= df_projects["Scope"].isin(st.session_state.scope_sel)
+    
+effective_scopes = st.session_state.scope_sel or scope_opts
+# Recompute allowed Types under current scopes (same logic as df_children)
+allowed_types = uniq_sorted(
+    df_projects.loc[df_projects["Scope"].isin(effective_scopes), "Type"]
+) if "Type" in df_projects else []
+effective_types = st.session_state.type_sel or allowed_types
+
+if allowed_types:  # only if Type column exists
+    mask &= df_projects["Type"].isin(effective_types)
+if st.session_state.redrem_sel:
+    mask &= df_projects["Reduction_Removal"].isin(st.session_state.redrem_sel)
 
 df_sel = df_projects[mask].copy()
 
@@ -1049,4 +1106,5 @@ else:
         if len(figs) > 3:
 
             st.plotly_chart(figs[3], use_container_width=True)
+
 
