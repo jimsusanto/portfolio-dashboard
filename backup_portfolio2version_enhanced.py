@@ -275,27 +275,13 @@ def _apply_master_all():
 
 st.sidebar.checkbox("Select all for every filter", key="master_all", on_change=_apply_master_all)
 
-# ========= 3) compute CHILD options based on parents FIRST =========
-df_children = df_projects.copy()
-if st.session_state.region_sel:
-    df_children = df_children[df_children["Region"].isin(st.session_state.region_sel)]
-if st.session_state.scope_sel:
-    df_children = df_children[df_children["Scope"].isin(st.session_state.scope_sel)]
-
-country_opts = uniq_sorted(df_children["Country"]) if "Country" in df_children else []
-type_opts    = uniq_sorted(df_children["Type"])    if "Type" in df_children else []
-
-# ========= 4) render PARENT widgets =========
+# ========= 3) render PARENT widgets =========
 
 def _clear_type_on_scope_change():
     # When Scope changes, clear Type so it can repopulate with valid defaults
     st.session_state["type_sel"] = []
 
-st.sidebar.multiselect("Registry", options=registry_opts, key="registry_sel",
-                       disabled=st.session_state.master_all)
 st.sidebar.multiselect("Region", options=region_opts, key="region_sel",
-                       disabled=st.session_state.master_all)
-st.sidebar.multiselect("Country", options=country_opts, key="country_sel",
                        disabled=st.session_state.master_all)
 st.sidebar.multiselect(
     "Scope",
@@ -305,18 +291,44 @@ st.sidebar.multiselect(
     on_change=_clear_type_on_scope_change,   # << add this
 )
 
+# ========= 4) compute CHILD options based on parents =========
+df_children = df_projects.copy()
+if st.session_state.region_sel:
+    df_children = df_children[df_children["Region"].isin(st.session_state.region_sel)]
+if st.session_state.scope_sel:
+    df_children = df_children[df_children["Scope"].isin(st.session_state.scope_sel)]
+
+country_opts = uniq_sorted(df_children["Country"]) if "Country" in df_children else []
+type_opts    = uniq_sorted(df_children["Type"])    if "Type" in df_children else []
 # If user hasn't chosen any Type, default to "all valid Types under current Scope(s)"
 type_default = st.session_state.get("type_sel") or type_opts[:]
 
-# Clamp any existing child selections to allowed values (only if session state exists)
-if "type_sel" in st.session_state:
-    st.session_state.type_sel    = [v for v in st.session_state.type_sel    if v in type_opts]
+
+# Clamp any existing child selections to allowed values
+st.session_state.country_sel = [v for v in st.session_state.country_sel if v in country_opts]
+st.session_state.type_sel    = [v for v in st.session_state.type_sel    if v in type_opts]
 
 # If master_all is on, also fill child selections NOW (still before child widgets are rendered)
 if st.session_state.master_all:
+    st.session_state.country_sel = country_opts[:]
     st.session_state.type_sel    = type_opts[:]
 
-# ========= 5) build the mask FIRST (before rendering child widgets) =========
+# ========= 5) render CHILD & other widgets =========
+st.sidebar.multiselect("Country", options=country_opts, key="country_sel",
+                       disabled=st.session_state.master_all)
+st.sidebar.multiselect(
+    "Type (filtered by Scope)",
+    options=type_opts,
+    default=type_default,           # << make "all under scope" the default
+    key="type_sel",
+    disabled=st.session_state.master_all
+)
+st.sidebar.multiselect("Registry", options=registry_opts, key="registry_sel",
+                       disabled=st.session_state.master_all)
+st.sidebar.multiselect("Reduction / Removal", options=redrem_all, key="redrem_sel",
+                       disabled=st.session_state.master_all)
+
+# ========= 6) build the mask =========
 mask = pd.Series(True, index=df_projects.index)
 if st.session_state.region_sel:
     mask &= df_projects["Region"].isin(st.session_state.region_sel)
@@ -340,17 +352,6 @@ if st.session_state.redrem_sel:
     mask &= df_projects["Reduction_Removal"].isin(st.session_state.redrem_sel)
 
 df_sel = df_projects[mask].copy()
-
-# ========= 6) render CHILD & other widgets =========
-st.sidebar.multiselect(
-    "Type",
-    options=type_opts,
-    default=type_default,           # << make "all under scope" the default
-    key="type_sel",
-    disabled=st.session_state.master_all
-)
-st.sidebar.multiselect("Reduction / Removal", options=redrem_all, key="redrem_sel",
-                       disabled=st.session_state.master_all)
 
 
 # ============== TOP TABLE ==============
