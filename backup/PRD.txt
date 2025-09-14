@@ -1,0 +1,109 @@
+Build a clean analytics dashboard (Tailwind CDN)
+
+Tech
+
+Plain HTML + Tailwind CDN (no build step)
+
+Chart.js CDN for charts
+
+Heroicons (or Lucide) for icons
+
+Alpine.js (optional) to toggle the sidebar on mobile
+
+Layout
+
+Light gray app background bg-slate-50
+
+Left sidebar (fixed, 280px on md+, collapsible on mobile)
+
+Top bar with product name, search input, and small icon buttons (theme, bell, avatar)
+
+Content area max-w 7xl, centered, padding p-6 md:p-8, gap 6
+
+12-col responsive grid
+
+Visual style
+
+Cards: bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6
+
+Soft, modern, airy spacing; use gap-6
+
+Primary palette: indigo/violet (indigo-500/600, violet-500, accents sky-400)
+
+Subtle text colors: titles text-slate-800, meta text-slate-500
+
+Use tiny badges/pills with soft backgrounds (bg-indigo-50 text-indigo-600)
+
+Sections to include
+
+Hero / Sales Distribution (full-width)
+
+Gradient header card with abstract background (CSS gradient)
+
+Big total number + 4 compact stat pills (By Website, By Mobile, By Market, By Agent) each with %.
+
+Row 2 – three cards
+
+Sales Overview: donut chart + small legend + three inline KPIs (Revenue/Profit/Expense).
+
+Revenue Updates: vertical bar chart (7 bars).
+
+Yearly Sales: smooth line chart with two series and rounded points.
+
+Row 3 – two wide cards
+
+Active Users: world map image/SVG placeholder with small location dots, “23,214 total users”, and an “Export” icon button.
+
+Payment Gateways: vertical list of 4 gateways (PayPal, Wallet, Bank, Credit Card) with colored circular icons, amount deltas to the right, and a “View all transactions” link style button.
+
+Responsiveness
+
+Grid:
+
+md: 12 cols.
+
+Hero = col-span-12
+
+Sales/Revenue/Yearly = each md:col-span-4
+
+Active Users = md:col-span-8
+
+Payment Gateways = md:col-span-4
+
+Sidebar collapses to an overlay on mobile (hamburger button in top bar).
+
+Components
+
+Reusable Card class: bg-white rounded-2xl shadow-sm border border-slate-100
+
+Stat pill: inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm bg-white/70 backdrop-blur border border-white/60 shadow-sm
+
+Section header: title left, small icon buttons right
+
+Charts (Chart.js)
+
+Global font = Tailwind default
+
+Colors: let Chart.js auto-pick or set indigo/violet shades
+
+Smooth line tension 0.4, rounded bar radius 8
+
+Hide grid on x, keep light y grid color: 'rgba(15,23,42,0.06)'
+
+Tooltips enabled
+
+Deliverables
+
+One index.html with all CDNs and a small <script> initiating three charts.
+
+Clean, semantic markup; no external assets required (use SVGs or gradients).
+
+Minimal JS for sidebar toggle (x-data="{open:false}") if using Alpine.
+
+Acceptance criteria
+
+Matches look & feel of the reference: soft cards, rounded corners, subtle shadows, indigo/violet accents, tidy spacing.
+
+Works on mobile and desktop; sidebar toggles; charts render with dummy data.
+
+Lint-clean HTML; accessible buttons/labels; keyboard focus visible.
