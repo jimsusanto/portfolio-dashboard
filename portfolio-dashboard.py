@@ -16,6 +16,7 @@ import pycountry
 import plotly.io as pio
 import plotly.graph_objects as go
 from streamlit_plotly_events import plotly_events
+import textwrap
 
 # ============== CONFIG ==============
 st.set_page_config(
@@ -523,16 +524,12 @@ st.dataframe(df_display, use_container_width=True, height=400)
 # ============== CHARTS SECTION ==============
 # Helper function for text wrapping
 def wrap_with_br(s: str, width: int = 12) -> str:
-    words = str(s).split()
-    lines, line = [], ""
-    for w in words:
-        if len(line) + len(w) + (1 if line else 0) <= width:
-            line = (line + " " + w).strip()
-        else:
-            lines.append(line)
-            line = w
-    if line:
-        lines.append(line)
+    # Handle specific problematic cases
+    if s == "Long-Duration Removal":
+        return "Long-duration<br>Removal"
+    
+    # Use textwrap to split into lines of at most `width` chars
+    lines = textwrap.wrap(str(s), width=width)
     return "<br>".join(lines)
 
 # Registry and Reduction/Removal charts
@@ -559,7 +556,7 @@ with col1:
             text="Counts",
             color="Counts",
             color_continuous_scale="viridis",
-            height=520
+            height=500
         )
         
         fig_std.update_xaxes(
@@ -605,7 +602,7 @@ with col2:
             text="Counts",
             color="Counts",
             color_continuous_scale="plasma",
-            height=520
+            height=500
         )
         
         fig_rr.update_xaxes(
@@ -745,7 +742,7 @@ else:
         color="Reduction_Removal",
         barmode="stack",
         text="Counts",
-        title="Projects by Reduction/Removal per Registry",
+        # title="Projects by Reduction/Removal per Registry",
         color_discrete_sequence=px.colors.qualitative.Set3
     )
     fig_ct.update_traces(
@@ -961,11 +958,11 @@ else:
             color=value_col,
             hover_name="Country",
             title=title,
-            projection="natural earth",
+            projection="mercator",
             color_continuous_scale="Viridis",
         )
         fig.update_layout(
-            margin=dict(t=50, r=10, b=10, l=10),
+            margin=dict(t=20, r=10, b=5, l=10),
         )
         fig.update_geos(fitbounds="locations", visible=False, bgcolor="rgba(0,0,0,0)")
         return fig
@@ -1111,22 +1108,22 @@ else:
     # Compute total across registries
     project_country_2["Sum"] = project_country_2[desired].sum(axis=1)
 
-    # Sort by Sum desc and take top 20
+    # Sort by Sum desc and take top 10
     top10 = project_country_2.sort_values(by="Sum", ascending=False).head(10).copy()
 
     # Horizontal stacked bar
     fig_top10 = px.bar(
-        top10.sort_values("Sum", ascending=True),
-        y="Country",
-        x=desired,
-        orientation="h",
+        top10.sort_values("Sum", ascending=False),
+        x="Country",
+        y=desired,
+        orientation="v",
         color_discrete_sequence=px.colors.qualitative.Set3
     )
     fig_top10.update_layout(
         barmode="stack",
-        margin=dict(t=60, r=10, b=10, l=10),
-        xaxis_title="Number of Projects",
-        yaxis_title="Country",
+        margin=dict(t=40, r=10, b=10, l=10),
+        xaxis_title="Country",
+        yaxis_title="Number of Projects",
     )
 
     st.plotly_chart(fig_top10, use_container_width=True)
