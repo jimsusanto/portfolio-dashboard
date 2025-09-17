@@ -377,7 +377,15 @@ with st.sidebar:
     
     # Filter sections with custom styling
     st.markdown('<div class="filter-section hidden">', unsafe_allow_html=True)
-    st.markdown('<p class="filter-label">📍 By Geography</p>', unsafe_allow_html=True)
+    st.markdown("""
+    <style>
+    .filter-label {
+        text-transform: none !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+    
+    st.markdown('<p class="filter-label">📍 by Geography</p>', unsafe_allow_html=True)
     
     region_sel = st.multiselect("Region", options=region_opts, key="region_sel")
     
@@ -514,8 +522,6 @@ for c in ["Total_Credits_Issued", "Total_Credits_Retired", "Total_Credits_Remain
 st.dataframe(df_display, use_container_width=True, height=400)
 
 # ============== CHARTS SECTION ==============
-st.markdown("---")
-
 # Helper function for text wrapping
 def wrap_with_br(s: str, width: int = 12) -> str:
     words = str(s).split()
@@ -625,8 +631,6 @@ with col2:
         )
         st.plotly_chart(fig_rr, use_container_width=True)
 
-st.markdown("---")
-
 # ============== STACKED CREDITS BY REDUCTION/REMOVAL ==============
 st.markdown('<h2 class="section-header">💰 Credits by Reduction/Removal</h2>', unsafe_allow_html=True)
 
@@ -657,54 +661,54 @@ else:
     bar_df = credits_by_rr.reset_index()
     bar_df["Reduction_Removal_wrapped"] = bar_df["Reduction_Removal"].apply(lambda s: wrap_with_br(s, 12))
 
-    # Stack only the components
-    bar_long = bar_df.melt(
-        id_vars=["Reduction_Removal", "Reduction_Removal_wrapped"],
-        value_vars=["Total_Credits_Retired", "Total_Credits_Remaining"],
-        var_name="Category",
-        value_name="Credits",
-    )
+    # Create stacked bar chart for Retired + Remaining
+    fig_cr = go.Figure()
 
-    fig_cr = px.bar(
-        bar_long,
-        x="Reduction_Removal_wrapped",
-        y="Credits",
-        color="Category",
-        barmode="stack",
-        text="Credits",
-        title="Issued (line) vs Retired + Remaining (stack)",
-        color_discrete_sequence=["#ef4444", "#10b981"]
-    )
-
-    # Format bar segment hover + text
-    fig_cr.update_traces(
+    # Add stacked bars for Retired + Remaining
+    fig_cr.add_trace(go.Bar(
+        x=bar_df["Reduction_Removal_wrapped"],
+        y=bar_df["Total_Credits_Retired"],
+        name="Total Credits Retired",
+        marker_color="#ef4444",
+        text=bar_df["Total_Credits_Retired"],
         texttemplate="%{text:,}",
-        hovertemplate="%{x}<br>%{legendgroup}: %{y:,}<extra></extra>",
-        cliponaxis=False,
-    )
+        textposition="outside",
+        hovertemplate="%{x}<br>Retired: %{y:,}<extra></extra>"
+    ))
+
+    fig_cr.add_trace(go.Bar(
+        x=bar_df["Reduction_Removal_wrapped"],
+        y=bar_df["Total_Credits_Remaining"],
+        name="Total Credits Remaining",
+        marker_color="#10b981",
+        text=bar_df["Total_Credits_Remaining"],
+        texttemplate="%{text:,}",
+        textposition="outside",
+        hovertemplate="%{x}<br>Remaining: %{y:,}<extra></extra>"
+    ))
 
     # Add Issued as total line with markers
-    fig_cr.add_scatter(
+    fig_cr.add_trace(go.Scatter(
         x=bar_df["Reduction_Removal_wrapped"],
         y=bar_df["Total_Credits_Issued_calc"],
         mode="lines+markers",
         name="Total Credits Issued",
         marker=dict(size=8, color="#667eea"),
         line=dict(width=2, color="#667eea"),
-        hovertemplate="%{x}<br>Total Issued: %{y:,}<extra></extra>",
-    )
+        hovertemplate="%{x}<br>Total Issued: %{y:,}<extra></extra>"
+    ))
 
+    # Update layout for stacked bars
     fig_cr.update_layout(
+        barmode="stack",
         margin=dict(t=55, r=10, b=30, l=10),
         xaxis_title="Reduction / Removal",
         yaxis_title="Credits",
         legend_title_text="Category",
+        xaxis=dict(tickangle=0, automargin=True)
     )
-    fig_cr.update_xaxes(tickangle=0, automargin=True)
 
     st.plotly_chart(fig_cr, use_container_width=True)
-
-st.markdown("---")
 
 # ============== PROJECTS BY REDUCTION/REMOVAL BY STANDARD ==============
 st.markdown('<h2 class="section-header">📋 Projects by Reduction/Removal by Standard</h2>', unsafe_allow_html=True)
@@ -729,7 +733,7 @@ else:
         values=projects_by_redrem_by_std["Counts"],
         aggfunc="sum",
     ).fillna(0).astype(int).sort_index()
-    st.dataframe(ctab, use_container_width=True)
+    # st.dataframe(ctab, use_container_width=True)
 
     # Plotly stacked bar
     df_plot = projects_by_redrem_by_std.copy()
@@ -759,10 +763,8 @@ else:
 
     st.plotly_chart(fig_ct, use_container_width=True)
 
-st.markdown("---")
-
 # ============== SUNBURST CHARTS IN 1x2 LAYOUT ==============
-st.markdown('<h2 class="section-header">🎯🏢 Projects by Scope & Scope by Standard</h2>', unsafe_allow_html=True)
+st.markdown('<h2 class="section-header">🎯🏢 Projects by Scope & by Standard</h2>', unsafe_allow_html=True)
 
 # Create 1 row x 2 columns layout
 col1, col2 = st.columns(2)
@@ -839,8 +841,6 @@ with col2:
 
         st.plotly_chart(fig_sb2, use_container_width=True)
 
-st.markdown("---")
-
 # ============== DISTRIBUTION OF PROJECTS ACROSS COUNTRIES ==============
 st.markdown('<h2 class="section-header">🌍 Distribution of Projects Across Countries</h2>', unsafe_allow_html=True)
 
@@ -880,14 +880,16 @@ else:
     )
     
     fig_map.update_layout(
-        paper_bgcolor=ST_BG, 
-        plot_bgcolor=ST_BG, 
+        paper_bgcolor="rgba(0,0,0,0)", 
+        plot_bgcolor="rgba(0,0,0,0)", 
         font=dict(color="white"),
-        margin=dict(t=40, r=10, b=40, l=10)
+        margin=dict(t=40, r=10, b=40, l=10),
+        geo=dict(bgcolor="rgba(0,0,0,0)", showframe=False, showcoastlines=False, showland=False, showocean=False, showcountries=False)
     )
-    fig_map.update_geos(fitbounds="locations", visible=False, bgcolor=ST_BG)
+    fig_map.update_geos(fitbounds="locations", visible=False, bgcolor="rgba(0,0,0,0)")
+    fig_map.update_traces(marker_opacity=0.7, marker_line_width=0)
 
-    st.caption("Tip: click a country on the map to filter. Use the reset button to clear.")
+    # st.caption("Tip: click a country on the map to filter. Use the reset button to clear.")
     clicks = plotly_events(
         fig_map, click_event=True, select_event=False, hover_event=False,
         override_height=600, override_width="100%"
@@ -899,13 +901,9 @@ else:
         if clicked:
             st.session_state.country_filter = [clicked]
             st.rerun()
-    
-    
-st.markdown("---")
 
 # ============== DISTRIBUTION OF PROJECTS ACROSS COUNTRIES BY STANDARD ==============
-st.markdown('<h2 class="section-header">🗺️ Distribution of Projects Across Countries by Standard</h2>', unsafe_allow_html=True)
-
+# st.markdown('<h2 class="section-header">🗺️ Distribution of Projects Across Countries by Standard</h2>', unsafe_allow_html=True)
 def standardize_country(name):
     try:
         return pycountry.countries.lookup(name).name
@@ -970,7 +968,7 @@ else:
         fig.update_layout(
             margin=dict(t=50, r=10, b=10, l=10),
         )
-        fig.update_geos(fitbounds="locations", visible=False, bgcolor=ST_BG)
+        fig.update_geos(fitbounds="locations", visible=False, bgcolor="rgba(0,0,0,0)")
         return fig
 
     # Build figures (up to 4)
@@ -1000,8 +998,6 @@ else:
     with c4:
         if len(figs) > 3:
             st.plotly_chart(figs[3], use_container_width=True)
-
-st.markdown("---")
 
 # ============== PROJECT STARTS BY STANDARD OVER TIME ==============
 st.markdown('<h2 class="section-header">📅 Project Starts by Standard Over Time (by First Vintage Year)</h2>', unsafe_allow_html=True)
@@ -1065,8 +1061,6 @@ else:
 
     st.plotly_chart(fig_vintage, use_container_width=True)
 
-st.markdown("---")
-
 # ============== TOP 20 COUNTRIES ==============
 st.markdown('<h2 class="section-header">🏆 Top 20 Countries with Most Projects (Stacked by Registry)</h2>', unsafe_allow_html=True)
 
@@ -1119,23 +1113,23 @@ else:
     project_country_2["Sum"] = project_country_2[desired].sum(axis=1)
 
     # Sort by Sum desc and take top 20
-    top20 = project_country_2.sort_values(by="Sum", ascending=False).head(20).copy()
+    top10 = project_country_2.sort_values(by="Sum", ascending=False).head(10).copy()
 
     # Horizontal stacked bar
-    fig_top20 = px.bar(
-        top20.sort_values("Sum", ascending=True),
+    fig_top10 = px.bar(
+        top10.sort_values("Sum", ascending=True),
         y="Country",
         x=desired,
         orientation="h",
         color_discrete_sequence=px.colors.qualitative.Set3
     )
-    fig_top20.update_layout(
+    fig_top10.update_layout(
         barmode="stack",
         margin=dict(t=60, r=10, b=10, l=10),
         xaxis_title="Number of Projects",
         yaxis_title="Country",
     )
 
-    st.plotly_chart(fig_top20, use_container_width=True)
+    st.plotly_chart(fig_top10, use_container_width=True)
 
 st.markdown('</div>', unsafe_allow_html=True)  # Close main-content
