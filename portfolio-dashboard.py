@@ -1129,3 +1129,15 @@ else:
     st.plotly_chart(fig_top10, use_container_width=True)
 
 st.markdown('</div>', unsafe_allow_html=True)  # Close main-content
+
+# ============== DATA SOURCE ==============
+st.markdown("""
+<div style="text-align: center; margin-top: 2rem; padding: 1rem; background: rgba(30, 41, 59, 0.3); border-radius: 0.5rem; border: 1px solid #374151;">
+    <p style="color: #cbd5e1; font-size: 0.875rem; line-height: 1.6;">
+        Data source: Barbara K Haya, Tyler Bernard, Aline Abayo, Xinyun Rong, Ivy S. So, Micah Elias. (2025). 
+        <strong>Voluntary Registry Offsets Database v2025-06</strong>. Berkeley Carbon Trading Project, University of California, Berkeley. 
+        Retrieved from https://gspp.berkeley.edu/berkeley-carbon-trading-project/offsets-database. 
+        Licensed under CC BY 4.0.
+    </p>
+</div>
+""", unsafe_allow_html=True)
