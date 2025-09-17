@@ -94,7 +94,6 @@ st.markdown("""
     }
     
     .filter-label {
-        color: #cbd5e1;
         font-size: 0.875rem;
         font-weight: 500;
         margin-bottom: 0.5rem;
@@ -764,7 +763,7 @@ else:
     st.plotly_chart(fig_ct, use_container_width=True)
 
 # ============== SUNBURST CHARTS IN 1x2 LAYOUT ==============
-st.markdown('<h2 class="section-header">🎯🏢 Projects by Scope & by Standard</h2>', unsafe_allow_html=True)
+st.markdown('<h2 class="section-header">🏢 Projects by Scope & by Standard</h2>', unsafe_allow_html=True)
 
 # Create 1 row x 2 columns layout
 col1, col2 = st.columns(2)
@@ -1062,7 +1061,7 @@ else:
     st.plotly_chart(fig_vintage, use_container_width=True)
 
 # ============== TOP 20 COUNTRIES ==============
-st.markdown('<h2 class="section-header">🏆 Top 20 Countries with Most Projects (Stacked by Registry)</h2>', unsafe_allow_html=True)
+st.markdown('<h2 class="section-header">🏆 Top 10 Countries with Most Projects</h2>', unsafe_allow_html=True)
 
 needed_cols = {"Voluntary_Registry", "Country", "Project ID"}
 if df_sel.empty or not needed_cols.issubset(df_sel.columns):
