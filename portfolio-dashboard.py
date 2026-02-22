@@ -247,7 +247,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-EXCEL_PATH = r"data/Voluntary-Registry-Offsets-Database--v2025-06.xlsx"
+EXCEL_PATH = r"data/Voluntary-Registry-Offsets-Database--v2025-12-year-end.xlsx"
 SHEET_NAME = "PROJECTS"
 SKIP_ROWS = 3
 
